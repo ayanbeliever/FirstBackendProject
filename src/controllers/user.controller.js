@@ -3,16 +3,18 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import jwt from "jsonwebtoken"
+import mongoose from "mongoose"
 
 const generateAccessAndRefreshToken = async(userId) => 
 {
     try {
-        const user = User.findById(userId);
+        const user = await User.findById(userId);      
         const accessToken = user.generateAccessToken();
         const refreshToken = user.generateRefreshToken();
-
+        
         user.refreshToken = refreshToken;
-        user.save({validateBeforeSave: false});
+        await user.save({validateBeforeSave: false});
 
         return {accessToken, refreshToken};
 
@@ -113,7 +115,7 @@ const loginUser = asyncHandler(async (req, res) => {
     // send cookie
 
     const {email, username, password} = req.body;
-
+    
     if(!username && !email) {
         throw new ApiError(400, "Username or email is required");
     }
@@ -124,6 +126,10 @@ const loginUser = asyncHandler(async (req, res) => {
 
     if(!user) {
         throw new ApiError(400, "User does not exist");
+    }
+
+    if(!password) {
+        throw new ApiError(400, "password is required");
     }
 
     const isPasswordValid = await user.isPasswordCorrect(password);
